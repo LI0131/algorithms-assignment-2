@@ -1,0 +1,1 @@
+pipenv run trace algo.py "T(n) = 7T(n/2) + n^2"

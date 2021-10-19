@@ -1,0 +1,158 @@
+    1: import re
+    1: import logging
+       
+    1: from enum import Enum
+    1: from typing import List, Union
+    1: from dataclasses import dataclass
+       
+    1: from settings import APP_NAME
+    1: from rational import Rational
+       
+       
+    1: __all__ = ['get_function', 'PolynomialFunction']
+       
+       
+    1: REGEX_START = r'T\(n\)\s=\s'
+    1: DIVISION_REGEX = REGEX_START + r'\d?T\(n\/\d\)\s\+\s'
+    1: SUBTRACTION_REGEX = REGEX_START + r'\d?T\(n-\d\)\s\+\s'
+    1: POLYNOMIAL_FUNCTION_REGEX = r'\w?\/?\w?n\^?\d?\/?\d?'
+    1: CONSTANT_FUNCTION_REGEX = r'\w?\/?\w?\d*\^?\d?\/?\d?'
+    1: BIG_O_FUNCTION_REGEX = r'O\(n\^\d{1,}\/?\d*?\)'
+    1: THETA_FUNCTION_REGEX = r'Theta\(n\^?\d*?\/?\d*?\)'
+    1: OMEGA_FUNCTION_REGEX = r'Omega\(n\^\d{1,}\/?\d*?\)'
+       
+       
+    1: app_logger = logging.getLogger(APP_NAME)
+       
+       
+    2: class FunctionTypes(Enum):
+    1:     DIVISION = '/'
+    1:     SUBTRACTION = '-'
+       
+       
+    2: @dataclass(init=False)
+    1: class Function:
+    1:     a: int
+    1:     b: Rational
+    1:     op: FunctionTypes
+       
+    1:     def __init__(self, func: str):
+               # if the incoming function contains division in recursive definition
+    1:         if re.match(DIVISION_REGEX, func):
+    1:             app_logger.debug(f'Division expression found in incoming function')
+    1:             self._parse_division_expression(func)
+    1:             self.op = FunctionTypes.DIVISION
+       
+               # if the incoming function contains subtraction in recursive definition
+               elif re.match(SUBTRACTION_REGEX, func):
+                   app_logger.debug(f'Subtraction expression found in incoming function')
+                   self._parse_subtraction_expression(func)
+                   self.op = FunctionTypes.SUBTRACTION
+       
+               # if the incoming function is unsupported
+               else:
+                   app_logger.info(f'The given function ({func}) is not supported.')
+       
+    1:     def _parse_division_expression(self, func: str):
+               '''
+               Determine the a and d values given in this expression and parse them into their
+               respective types. This function parse functions which match the form aT(n/d).
+               '''
+    1:         match = re.search(r'\d?T\(n\/\d\)', func)
+    1:         if match:
+    1:             app_logger.debug(f'Printing match: {match.group()}')
+    1:             group_arr: List[str] = list(match.group())
+    1:             index: int = 0
+    1:             a_val: str = ''
+    2:             while group_arr[index] != 'T':
+    1:                 a_val += group_arr[index]
+    1:                 index += 1
+    1:             self.a = 1 if a_val == '' else int(a_val)
+    4:             while group_arr[index] != '/':
+    3:                 index += 1
+    1:             b_val: str = ''.join(group_arr[index + 1: -1])
+    1:             self.b = Rational(b_val)
+       
+    1:     def _parse_subtraction_expression(self, func: str):
+               '''
+               Determine the a and d values given in this expression and parse them into their
+               respective types. This function parse functions which match the form aT(n-d).
+               '''
+               match = re.search(r'\d?T\(n-\d\)', func)
+               if match:
+                   app_logger.debug(f'Printing match: {match.group()}')
+                   group_arr: List[str] = list(match.group())
+                   index: int = 0
+                   a_val: str = ''
+                   while group_arr[index] != 'T':
+                       a_val += group_arr[index]
+                       index += 1
+                   self.a = 1 if a_val == '' else int(a_val)
+                   while group_arr[index] != '-':
+                       index += 1
+                   b_val: str = ''.join(group_arr[index + 1: -1])
+                   self.b = Rational(b_val)
+       
+       
+    2: @dataclass(init=False)
+    1: class PolynomialFunction(Function):
+    1:     c: Union[str, Rational]
+    1:     d: Rational
+    1:     asymptotic_func: str = ''
+       
+    1:     def __init__(self, func, c: Rational, d: Rational, asymptotic_func: str):
+    1:         super().__init__(func)
+    1:         self.c = c
+    1:         self.d = d
+    1:         self.asymptotic_func = asymptotic_func
+       
+    1:     def __repr__(self):
+    1:         return f'T(n) = {self.a}T(n{self.op.value}{self.b}) + {self.asymptotic_func}({self.c}n^{self.d})'
+       
+       
+    1: def get_function(func: str) -> Function:
+           '''
+           Parse the cost function into its component pieces for the format
+           cn^d. There can also be non-polynomial type function passed here,
+           such as O(n) or O(n/3), we should also handle those functions.
+           '''
+    1:     match = re.search(r'\+\s?(.*)', func)
+    1:     if match:
+    1:         func_match = match.groups()[0]
+    1:         if re.match(POLYNOMIAL_FUNCTION_REGEX, func_match):
+    1:             cost = func_match
+    1:             asymptotic_func = ''
+    1:             app_logger.debug(f'Printing function match: {func_match}')
+               elif re.match(BIG_O_FUNCTION_REGEX, func_match):
+                   cost = 'c' + func_match[2: -1]
+                   asymptotic_func = func_match[:1]
+                   app_logger.debug(f'Parsed Big-O cost function: {cost}')
+               elif re.match(THETA_FUNCTION_REGEX, func_match):
+                   cost = 'c' + func_match[6: -1]
+                   asymptotic_func = func_match[:5]
+                   app_logger.debug(f'Parsed Theta cost function: {cost}')
+               elif re.match(OMEGA_FUNCTION_REGEX, func_match):
+                   cost = 'c' + func_match[6: -1]
+                   asymptotic_func = func_match[:5]
+                   app_logger.debug(f'Parsed Omega cost function: {cost}')
+               elif re.match(CONSTANT_FUNCTION_REGEX, func_match):
+                   cost = func_match
+                   asymptotic_func = ''
+                   app_logger.debug(f'Printing constant function match: {func_match}')
+               else:
+                   app_logger.debug(f'Couldn\'t parse given function {func}')
+                   return
+       
+               # parse c and d from cost function
+    1:         func_match_arr: List[str] = list(cost)
+    1:         index: int = 0
+    1:         c_val: str = ''
+    2:         while index < len(func_match_arr) and func_match_arr[index] != "n":
+    1:             c_val += func_match_arr[index]
+    1:             index += 1
+    1:         try:
+    1:             c_val = Rational(c_val)
+    1:         except:
+    1:             pass
+    1:         d_val = ''.join(func_match_arr[index + 2:])
+    1:         return PolynomialFunction(func, c_val, Rational(d_val), asymptotic_func)

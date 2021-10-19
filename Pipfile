@@ -4,7 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [scripts]
+generate = "python3 algo.py"
 test = "pipenv run python -m pytest --log-cli-level=debug"
+trace = "python3 -m trace --count"
 
 [packages]
 pytest = "*"

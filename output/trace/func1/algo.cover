@@ -1,0 +1,34 @@
+    1: import sys
+       
+    1: from tree import Node, Tree
+    1: from logger import init_logger
+    1: from function import PolynomialFunction, get_function
+       
+    1: app_logger = init_logger()
+       
+       
+    1: def create_tree(func: PolynomialFunction, tree: Tree = Tree(), layer: int = 4) -> Tree:
+           # recursively compute until all 4 layers of the tree are printed
+    5:     if layer > 0:
+    4:         create_tree(func, tree, layer - 1)
+       
+    5:     if layer == 0:
+    1:         return tree.append([Node.from_func(func, layer)], layer)
+    4:     elif layer < 4:
+    3:         num_leaves: int = func.a if func.a == 1 else func.a ** layer
+    3:         return tree.append([Node.from_func(func, layer)] * num_leaves, layer)
+       
+    1:     return tree
+       
+       
+    1: if __name__ == "__main__":
+    1:     if len(sys.argv) == 2:
+    1:         func = get_function(sys.argv[-1])
+    1:         if func is not None:
+    1:             app_logger.info(f'Creating Recursion Tree for {func}')
+    1:             tree = create_tree(func)
+    1:             app_logger.info(f'{tree}')
+               else:
+                   app_logger.info(f'Could not parse function {sys.argv[-1]}')
+           else:
+               print('Usage: pipenv run generate <recursive function>')

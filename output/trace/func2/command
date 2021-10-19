@@ -1,0 +1,1 @@
+pipenv run trace algo.py 'T(n) = T(n-1) + n'

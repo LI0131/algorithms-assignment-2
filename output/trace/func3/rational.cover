@@ -1,0 +1,80 @@
+    1: from __future__ import annotations
+       
+    1: import math
+    1: import copy
+    1: import logging
+       
+    1: import settings
+       
+    1: from typing import Union
+    1: from dataclasses import dataclass
+       
+    1: app_logger = logging.getLogger(settings.APP_NAME)
+       
+       
+    2: @dataclass(init=False)
+    1: class Rational:
+    1:     numerator: int
+    1:     denominator: int
+       
+    1:     def __init__(self, value: str = '1'):
+    9:         if '/' in value:
+    3:             value = value.split('/')
+    3:             self.numerator = int(value[0])
+    3:             self.denominator = int(value[1])
+    6:         elif len(value) > 0:
+    6:             self.numerator = int(value)
+    5:             self.denominator = 1
+               else:
+                   self.numerator = 1
+                   self.denominator = 1
+       
+    1:     def __repr__(self):
+  111:         if self.numerator % self.denominator == 0:
+  108:             return f'{int(self.numerator/self.denominator)}'
+    3:         elif self.denominator == 1:
+                   return self.numerator
+               else:
+    3:             return f'({self.numerator}/{self.denominator})'
+       
+    1:     def __mul__(self, other: Union[Rational, int]):
+    8:         obj = self.copy()
+    8:         if type(other) is Rational:
+                   obj.numerator = obj.numerator * other.numerator
+                   obj.denominator = obj.denominator * other.denominator
+               else:
+    8:             obj.numerator = obj.numerator * other
+    8:         obj.reduce()
+    8:         return obj
+       
+    1:     def __pow__(self, other: Union[int, Rational]):
+   15:         obj = self.copy()
+   15:         if type(other) is int:
+    8:             app_logger.debug(f'Power is an integer: {other}')
+    8:             obj.numerator = obj.numerator ** other
+    8:             obj.denominator = obj.denominator ** other
+    8:             app_logger.debug(f'Results: {obj.numerator}/{obj.denominator}')
+               else:
+    7:             other_value: float = other.numerator / other.denominator
+    7:             obj.numerator = int(obj.numerator ** other_value)
+    7:             obj.denominator = int(obj.denominator ** other_value)
+   15:         obj.reduce()
+   15:         return obj
+       
+    1:     def copy(self):
+   23:         return copy.copy(self)
+       
+    1:     def lcm(self, obj: Rational):
+               lcm = (self.numerator * self.denominator) // math.gcd(abs(obj.denominator), obj.numerator)
+               return lcm
+       
+    1:     def reduce(self):
+   26:         if (self.numerator != 0):
+   24:             common: int = math.gcd(abs(self.denominator), self.numerator)
+   24:             self.numerator = self.numerator // common
+   24:             self.denominator = self.denominator // common
+       
+       
+    1: if __name__ == "__main__":
+           rat = Rational('5/1')
+           print(rat * Rational('1/2'))

@@ -1,0 +1,1 @@
+pipenv run trace algo.py 'T(n) = 3T(n/4) + cn^2'
